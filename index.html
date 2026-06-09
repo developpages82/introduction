@@ -69,6 +69,10 @@
   .hero .slides .s{position:absolute;inset:0;opacity:0;transition:opacity 1.6s var(--ease);transform:scale(1.06)}
   .hero .slides .s.on{opacity:1;transform:scale(1);transition:opacity 1.6s var(--ease),transform 7s linear}
   .hero .slides .s img{width:100%;height:100%;object-fit:cover}
+  /* CSS Slideshow */
+  .hero .slides .slide{position:absolute;inset:0;opacity:0;transform:scale(1.06);transition:opacity 1.6s var(--ease),transform 7s linear}
+  .hero .slides .slide img{width:100%;height:100%;object-fit:cover}
+  .hero .slides .slide.active{opacity:1;transform:scale(1)}
   .hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.15) 40%,rgba(0,0,0,.55))}
   .hero .inner{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--pad) 56px}
   .hero .tag{font-family:var(--font-sans);font-size:.76rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:24px;overflow:hidden}
@@ -228,7 +232,7 @@
 <main id="top">
   <!-- HERO -->
   <section class="hero" style="padding:0">
-    <div class="slides" id="slides"><canvas id="gl"></canvas></div>
+    <div class="slides" id="slides"></div>
     <div class="veil"></div>
     <div class="inner">
       <h1><span class="line"><span class="lineUp">Creating Emotion</span></span><span class="line"><span class="lineUp l2">that Move Hearts</span></span></h1>
@@ -336,109 +340,32 @@
 <script>
 /* WORKS data is loaded from works-data.js */
 
-// ===== Hero: WebGL displacement slideshow + mouse parallax =====
+// ===== Hero: CSS Slideshow with Mouse Parallax =====
 const HERO=["img/slide/1.jpg","img/slide/2.jpg","img/slide/3.jpg","img/slide/4.jpg","img/slide/5.jpg","img/slide/6.jpg","img/slide/7.jpg","img/slide/8.jpg","img/slide/9.jpg"];
 const slidesEl=document.getElementById('slides');
-const canvas=document.getElementById('gl');
-function fallbackSlides(){
-  if(canvas) canvas.remove();
-  slidesEl.innerHTML=HERO.map((s,i)=>`<div class="s${i===0?' on':''}"><img src="${s}" alt=""></div>`).join('');
-  const ss=slidesEl.querySelectorAll('.s');let hi=0;
-  setInterval(()=>{ss[hi].classList.remove('on');hi=(hi+1)%ss.length;ss[hi].classList.add('on')},4200);
-}
-(function initHeroGL(){
-  if(typeof THREE==='undefined') return fallbackSlides();
-  let renderer;
-  try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});}
-  catch(e){return fallbackSlides();}
-  if(!renderer.getContext()) return fallbackSlides();
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-  const scene=new THREE.Scene();
-  const camera=new THREE.Camera();
-  const loader=new THREE.TextureLoader();
-  const textures=[];let loaded=0,failed=false;
-  HERO.forEach((src,i)=>loader.load(src,t=>{
-    t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;
-    textures[i]=t;if(++loaded===HERO.length&&!failed)start();
-  },undefined,()=>{failed=true;fallbackSlides();}));
-  const U={
-    uTex0:{value:null},uTex1:{value:null},
-    uRes0:{value:new THREE.Vector2(1,1)},uRes1:{value:new THREE.Vector2(1,1)},
-    uResolution:{value:new THREE.Vector2(1,1)},
-    uProgress:{value:0},uTime:{value:0},uZoom0:{value:0},uZoom1:{value:0},
-    uMouse:{value:new THREE.Vector2(0,0)}
-  };
-  const vert=`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position*2.0,1.0);}`;
-  const frag=`precision highp float;varying vec2 vUv;
-  uniform sampler2D uTex0,uTex1;uniform vec2 uRes0,uRes1,uResolution,uMouse;
-  uniform float uProgress,uTime,uZoom0,uZoom1;
-  vec2 cover(vec2 uv,vec2 res,vec2 img){
-    vec2 r=vec2(min((res.x/res.y)/(img.x/img.y),1.0),min((res.y/res.x)/(img.y/img.x),1.0));
-    return vec2(uv.x*r.x+(1.0-r.x)*0.5,uv.y*r.y+(1.0-r.y)*0.5);}
-  vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
-  vec2 mod289(vec2 x){return x-floor(x*(1.0/289.0))*289.0;}
-  vec3 permute(vec3 x){return mod289(((x*34.0)+1.0)*x);}
-  float snoise(vec2 v){const vec4 C=vec4(0.211324865,0.366025403,-0.577350269,0.024390243);
-    vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);
-    vec2 i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;
-    i=mod289(i);vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));
-    vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);m=m*m;m=m*m;
-    vec3 x=2.0*fract(p*C.www)-1.0;vec3 h=abs(x)-0.5;vec3 ox=floor(x+0.5);vec3 a0=x-ox;
-    m*=1.79284291-0.85373472*(a0*a0+h*h);
-    vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}
-  void main(){
-    vec2 uv=vUv;
-    vec2 par=uMouse*0.035;
-    vec2 zuv0=(uv-0.5)/uZoom0+0.5;
-    vec2 zuv1=(uv-0.5)/uZoom1+0.5;
-    vec2 uv0=cover(zuv0+par,uResolution,uRes0);
-    vec2 uv1=cover(zuv1+par,uResolution,uRes1);
-    float p=smoothstep(0.0,1.0,uProgress);
-    gl_FragColor=mix(texture2D(uTex0,uv0),texture2D(uTex1,uv1),p);
-  }`;
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
-    new THREE.ShaderMaterial({uniforms:U,vertexShader:vert,fragmentShader:frag}));
-  scene.add(mesh);
-  let cur=0,next=1,slideStart=0,prevCyclePos=-1;
-  const HOLD=3000,DUR=1600,CYCLE=HOLD+DUR,SWITCH=HOLD+DUR-200;
-  const sc=(i,z)=>(i%2===0)?(1.06+z*0.08):(1.14-z*0.08);
-  const setRes=(v,t)=>v.set(t.image.width,t.image.height);
-  function resize(){const w=slidesEl.clientWidth,h=slidesEl.clientHeight;
-    renderer.setSize(w,h,false);U.uResolution.value.set(w,h);}
-  let mx=0,my=0,tmx=0,tmy=0;
-  addEventListener('mousemove',e=>{const r=slidesEl.getBoundingClientRect();
-    tmx=((e.clientX-r.left)/r.width-0.5)*2.0;tmy=((e.clientY-r.top)/r.height-0.5)*-2.0;});
-  function start(){
-    U.uTex0.value=textures[0];U.uTex1.value=textures[1];
-    setRes(U.uRes0.value,textures[0]);setRes(U.uRes1.value,textures[1]);
-    resize();addEventListener('resize',resize);
-    canvas.classList.add('ready');slideStart=performance.now();requestAnimationFrame(loop);
-  }
-  function loop(now){
-    U.uTime.value=now*0.001;
-    mx+=(tmx-mx)*0.05;my+=(tmy-my)*0.05;U.uMouse.value.set(mx,my);
-    const el=now-slideStart;
-    // Use cumulative cycle position to prevent zoom jump
-    const cyclePos=el%CYCLE;
-    // Timeline: 0-4400ms hold image 0, prepare image 1; 4400-4600ms final zoom
-    const switchDuration=CYCLE-SWITCH;
-    const z0=(cyclePos<SWITCH)?0:Math.max(0,Math.min(1,(cyclePos-SWITCH)/switchDuration));
-    const z1=Math.max(0,Math.min(1,cyclePos/CYCLE));
-    U.uZoom0.value=sc(cur,z0);
-    U.uZoom1.value=sc(next,z1);
-    // Fade: starts at 3000ms (HOLD), completes at 4600ms (HOLD+DUR)
-    if(cyclePos<HOLD){U.uProgress.value=0;}
-    else{const t=Math.min((cyclePos-HOLD)/DUR,1.0);U.uProgress.value=t;}
-    // Switch image at 4400ms (200ms before fade complete)
-    if(prevCyclePos<SWITCH&&cyclePos>=SWITCH){
-      cur=next;next=(next+1)%textures.length;
-      U.uTex0.value=textures[cur];U.uTex1.value=textures[next];
-      setRes(U.uRes0.value,textures[cur]);setRes(U.uRes1.value,textures[next]);
-      U.uProgress.value=0;} // Reset fade progress after switch
-    prevCyclePos=cyclePos;
-    renderer.render(scene,camera);requestAnimationFrame(loop);
-  }
+let currentSlide=0;
+// Initialize slides
+slidesEl.innerHTML=HERO.map((src,i)=>`<div class="slide ${i===0?'active':''}"><img src="${src}" alt=""></div>`).join('');
+const slides=slidesEl.querySelectorAll('.slide');
+// Mouse parallax
+let mx=0,my=0,tmx=0,tmy=0;
+addEventListener('mousemove',e=>{
+  const r=slidesEl.getBoundingClientRect();
+  tmx=((e.clientX-r.left)/r.width-0.5)*25;
+  tmy=((e.clientY-r.top)/r.height-0.5)*25;
+});
+// Smooth parallax animation
+(function updateParallax(){
+  mx+=(tmx-mx)*0.08;my+=(tmy-my)*0.08;
+  slides.forEach(slide=>slide.style.transform=`translate(${mx.toFixed(1)}px,${my.toFixed(1)}px)`);
+  requestAnimationFrame(updateParallax);
 })();
+// Change slide every 4600ms
+setInterval(()=>{
+  slides[currentSlide].classList.remove('active');
+  currentSlide=(currentSlide+1)%slides.length;
+  slides[currentSlide].classList.add('active');
+},4600);
 
 // Render works
 const grid=document.getElementById('grid');
