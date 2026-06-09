@@ -436,7 +436,7 @@ function fallbackSlides(){
 // Render works
 const grid=document.getElementById('grid');
 function card(w,idx){
-  const tags=w.tags.map(t=>`<span>${t}</span>`).join('')+`<span class="yr">${w.year}</span>`;
+  const tags=w.client?`<span>${w.client}</span>`:'';
   const play=w.lt?`<span class="play">▶ ${w.lt}</span>`:'';
   const inner=`<div class="thumb"><img loading="lazy" src="${(w.gallery&&w.gallery[0])||w.img}" alt="${w.t}">${play}</div>
     <h3>${w.t}</h3><div class="tags">${tags}</div>`;
