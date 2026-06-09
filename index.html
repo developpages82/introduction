@@ -399,8 +399,8 @@ function fallbackSlides(){
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
     new THREE.ShaderMaterial({uniforms:U,vertexShader:vert,fragmentShader:frag}));
   scene.add(mesh);
-  let cur=0,next=1,slideStart=0;
-  const HOLD=3000,DUR=1600,CYCLE=HOLD+DUR;
+  let cur=0,next=1,slideStart=0,prevCyclePos=-1;
+  const HOLD=3000,DUR=1600,CYCLE=HOLD+DUR,SWITCH=HOLD+DUR-200;
   const sc=(i,z)=>(i%2===0)?(1.06+z*0.08):(1.14-z*0.08);
   const setRes=(v,t)=>v.set(t.image.width,t.image.height);
   function resize(){const w=slidesEl.clientWidth,h=slidesEl.clientHeight;
