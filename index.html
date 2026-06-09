@@ -388,9 +388,9 @@ function fallbackSlides(){
     vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.0*dot(m,g);}
   void main(){
     vec2 uv=vUv;
-    vec2 par=uMouse*0.022;
-    vec2 zuv0=(uv-0.5)/(1.0+uZoom0*0.10)+0.5;
-    vec2 zuv1=(uv-0.5)/(1.0+uZoom1*0.10)+0.5;
+    vec2 par=uMouse*0.035;
+    vec2 zuv0=(uv-0.5)/uZoom0+0.5;
+    vec2 zuv1=(uv-0.5)/uZoom1+0.5;
     vec2 uv0=cover(zuv0+par,uResolution,uRes0);
     vec2 uv1=cover(zuv1+par,uResolution,uRes1);
     float p=smoothstep(0.0,1.0,uProgress);
