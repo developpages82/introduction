@@ -393,10 +393,8 @@ function fallbackSlides(){
     vec2 par=uMouse*0.022;
     vec2 uv0=cover(zuv0+par,uResolution,uRes0);
     vec2 uv1=cover(zuv1+par,uResolution,uRes1);
-    float nn=snoise(uv*4.0)*0.5+0.5;
     float p=smoothstep(0.0,1.0,uProgress);
-    float m=smoothstep(nn-0.12,nn+0.12,p);
-    gl_FragColor=mix(texture2D(uTex0,uv0),texture2D(uTex1,uv1),m);
+    gl_FragColor=mix(texture2D(uTex0,uv0),texture2D(uTex1,uv1),p);
   }`;
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
     new THREE.ShaderMaterial({uniforms:U,vertexShader:vert,fragmentShader:frag}));
