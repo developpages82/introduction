@@ -1,0 +1,9 @@
+# --- Source / working files: keep locally, do NOT publish to the repo ---
+*.pptx
+*.pdf
+DESIGNmd/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
