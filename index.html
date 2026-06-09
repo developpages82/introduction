@@ -399,8 +399,9 @@ function fallbackSlides(){
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
     new THREE.ShaderMaterial({uniforms:U,vertexShader:vert,fragmentShader:frag}));
   scene.add(mesh);
-  let cur=0,next=1,slideStart=0;const DUR=1600,HOLD=3000,TOTAL=4600,SPAN=HOLD+2*DUR;
-  const sc=(i,z)=>(i%2===0)?(1.06+z*0.08):(1.14-z*0.08); // even idx: enlarge, odd idx: shrink
+  let cur=0,next=1,slideStart=0;
+  const HOLD=3000,DUR=1600,CYCLE=HOLD+DUR;
+  const sc=(i,z)=>(i%2===0)?(1.06+z*0.08):(1.14-z*0.08);
   const setRes=(v,t)=>v.set(t.image.width,t.image.height);
   function resize(){const w=slidesEl.clientWidth,h=slidesEl.clientHeight;
     renderer.setSize(w,h,false);U.uResolution.value.set(w,h);}
@@ -417,12 +418,13 @@ function fallbackSlides(){
     U.uTime.value=now*0.001;
     mx+=(tmx-mx)*0.05;my+=(tmy-my)*0.05;U.uMouse.value.set(mx,my);
     const el=now-slideStart;
-    // continuous per-image zoom; direction alternates by image index (enlarge / shrink).
-    // value carries over at swap (sc(cur) resumes from sc(next)) so there is no size jump.
-    const z0=Math.max(0,Math.min(1,(el+DUR)/SPAN));
-    const z1=Math.max(0,Math.min(1,(el-HOLD)/SPAN));
+    // Synchronized zoom and fade timing
+    // Each image zooms over CYCLE (4600ms): cur from 0→1, next from HOLD→1
+    const z0=Math.max(0,Math.min(1,el/CYCLE));
+    const z1=Math.max(0,Math.min(1,(el-HOLD)/CYCLE));
     U.uZoom0.value=sc(cur,z0);
     U.uZoom1.value=sc(next,z1);
+    // Fade: starts at HOLD, completes at HOLD+DUR
     if(el<HOLD){U.uProgress.value=0;}
     else{const t=Math.min((el-HOLD)/DUR,1.0);U.uProgress.value=t;
       if(t>=1.0){cur=next;next=(next+1)%textures.length;
