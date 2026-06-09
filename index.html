@@ -60,7 +60,7 @@
   .burger span{width:26px;height:2px;background:#fff;transform-origin:center;transition:transform .35s var(--ease),opacity .25s,background .3s}
 
   /* Hero */
-  .hero{position:relative;height:calc(100vh - 28px);min-height:600px;overflow:hidden;color:#fff;border-radius:14px;margin:14px}
+  .hero{position:relative;z-index:1;height:calc(100vh - 28px);min-height:600px;overflow:hidden;color:#fff;border-radius:14px;margin:18px;padding:0}
   .hero .slides{position:absolute;top:-10%;left:0;width:100%;height:120%;background:#0d0d0d}
   .hero .slides #gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.2s var(--ease)}
   .hero .slides #gl.ready{opacity:1}
@@ -97,6 +97,9 @@
   .lineUp{display:inline-block;transform:translateY(110%);opacity:0;transition:transform 1.1s var(--ease),opacity 1.1s var(--ease)}
   .ready .lineUp{transform:none;opacity:1}
   .ready .lineUp.l2{transition-delay:.12s}.ready .lineUp.l3{transition-delay:.24s}.ready .lineUp.l4{transition-delay:.4s}
+
+  /* Main */
+  main{padding:0}
 
   /* Reveal on scroll */
   .reveal{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease)}
@@ -208,7 +211,6 @@
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
 <div class="cursor" id="cursor"><span class="lbl">View</span></div>
 
 <header>
@@ -483,6 +485,5 @@ addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY});
 document.addEventListener('mouseover',e=>{if(e.target.closest('[data-cursor]'))cur.classList.add('big');});
 document.addEventListener('mouseout',e=>{if(e.target.closest('[data-cursor]'))cur.classList.remove('big');});
 </script>
-<script src="bg.js"></script>
 </body>
 </html>
