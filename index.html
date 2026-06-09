@@ -433,7 +433,8 @@ function fallbackSlides(){
     if(prevCyclePos<SWITCH&&cyclePos>=SWITCH){
       cur=next;next=(next+1)%textures.length;
       U.uTex0.value=textures[cur];U.uTex1.value=textures[next];
-      setRes(U.uRes0.value,textures[cur]);setRes(U.uRes1.value,textures[next]);}
+      setRes(U.uRes0.value,textures[cur]);setRes(U.uRes1.value,textures[next]);
+      U.uProgress.value=0;} // Reset fade progress after switch
     prevCyclePos=cyclePos;
     renderer.render(scene,camera);requestAnimationFrame(loop);
   }
