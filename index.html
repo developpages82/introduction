@@ -61,10 +61,11 @@
 
   /* Hero */
   .hero{position:relative;z-index:1;height:calc(100vh - 28px);min-height:600px;overflow:hidden;color:#fff;border-radius:14px;margin:18px;padding:0}
-  .hero .slides{position:absolute;inset:0;width:100%;height:100%;background:var(--bg);overflow:hidden}
-  /* CSS Slideshow - Synchronized fade + zoom */
+  .hero .slides{position:absolute;top:-10%;left:0;width:100%;height:120%;background:var(--bg);overflow:hidden}
+  .hero .slides #gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1s var(--ease)}
+  .hero .slides #gl.ready{opacity:1}
   .hero .slides .slide{position:absolute;inset:0;opacity:0;transform:scale(1.06);transition:opacity 1.6s var(--ease),transform 1.6s var(--ease);overflow:hidden}
-  .hero .slides .slide img{width:100%;height:100%;object-fit:cover;display:block}
+  .hero .slides .slide img{height:100%;width:auto;display:block;object-fit:contain}
   .hero .slides .slide.active{opacity:1;transform:scale(1)}
   .hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.15) 40%,rgba(0,0,0,.55))}
   .hero .inner{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--pad) 56px}
@@ -227,7 +228,7 @@
 <main id="top">
   <!-- HERO -->
   <section class="hero" style="padding:0">
-    <div class="slides" id="slides"></div>
+    <div class="slides" id="slides"><canvas id="gl"></canvas></div>
     <div class="veil"></div>
     <div class="inner">
       <h1><span class="line"><span class="lineUp">Creating Emotion</span></span><span class="line"><span class="lineUp l2">that Move Hearts</span></span></h1>
@@ -331,36 +332,70 @@
 </main>
 
 <script src="works-data.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 /* WORKS data is loaded from works-data.js */
 
-// ===== Hero: CSS Slideshow with Mouse Parallax =====
-const HERO=["img/slide/1.jpg","img/slide/2.jpg","img/slide/3.jpg","img/slide/4.jpg","img/slide/5.jpg","img/slide/6.jpg","img/slide/7.jpg","img/slide/8.jpg","img/slide/9.jpg"];
+// ===== Hero: WebGL slideshow (cross-fade + zoom + mouse parallax) =====
+const isSP=window.matchMedia("(max-width: 768px)").matches;
+const imgPath=isSP?"img/slide/sp/":"img/slide/";
+const HERO=[1,2,3,4,5,6,7,8].map(i=>imgPath+i+".jpg");
 const slidesEl=document.getElementById('slides');
-let currentSlide=0;
-// Initialize slides
-slidesEl.innerHTML=HERO.map((src,i)=>`<div class="slide ${i===0?'active':''}"><img src="${src}" alt=""></div>`).join('');
-const slides=slidesEl.querySelectorAll('.slide');
-// Mouse parallax
-let mx=0,my=0,tmx=0,tmy=0;
-addEventListener('mousemove',e=>{
-  const r=slidesEl.getBoundingClientRect();
-  tmx=((e.clientX-r.left)/r.width-0.5)*25;
-  tmy=((e.clientY-r.top)/r.height-0.5)*25;
-});
-// Smooth parallax animation
-(function updateParallax(){
-  mx+=(tmx-mx)*0.08;my+=(tmy-my)*0.08;
-  slides.forEach(slide=>slide.style.transform=`translate(${mx.toFixed(1)}px,${my.toFixed(1)}px)`);
-  requestAnimationFrame(updateParallax);
+const heroCanvas=document.getElementById('gl');
+function heroFallback(){
+  slidesEl.innerHTML=HERO.map((s,i)=>`<div class="slide ${i===0?'active':''}"><img src="${s}" alt=""></div>`).join('');
+  const sl=slidesEl.querySelectorAll('.slide');let ci=0;
+  setInterval(()=>{sl[ci].classList.remove('active');ci=(ci+1)%sl.length;sl[ci].classList.add('active');},4600);
+}
+(function initHeroGL(){
+  if(!heroCanvas) return heroFallback();
+  let gl; try{gl=heroCanvas.getContext('webgl')||heroCanvas.getContext('experimental-webgl');}catch(e){}
+  if(!gl) return heroFallback();
+  const vsrc='attribute vec2 p;varying vec2 vUv;void main(){vUv=p*0.5+0.5;gl_Position=vec4(p,0.0,1.0);}';
+  const fsrc=[
+    'precision highp float;varying vec2 vUv;',
+    'uniform sampler2D uTex0,uTex1;uniform vec2 uRes0,uRes1,uResolution,uMouse;uniform float uProgress,uScale0,uScale1;',
+    'vec2 cover(vec2 uv,vec2 res,vec2 img){vec2 r=vec2(min((res.x/res.y)/(img.x/img.y),1.0),min((res.y/res.x)/(img.y/img.x),1.0));return vec2(uv.x*r.x+(1.0-r.x)*0.5,uv.y*r.y+(1.0-r.y)*0.5);}',
+    'void main(){vec2 uv=vUv;vec2 par=uMouse*0.035;',
+    'vec2 a=(uv-0.5)/uScale0+0.5;vec2 b=(uv-0.5)/uScale1+0.5;',
+    'vec2 uv0=cover(a+par,uResolution,uRes0);vec2 uv1=cover(b+par,uResolution,uRes1);',
+    'float pr=smoothstep(0.0,1.0,uProgress);',
+    'gl_FragColor=mix(texture2D(uTex0,uv0),texture2D(uTex1,uv1),pr);}'
+  ].join('\n');
+  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o;}
+  const prog=gl.createProgram();gl.attachShader(prog,sh(gl.VERTEX_SHADER,vsrc));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fsrc));gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return heroFallback();
+  gl.useProgram(prog);
+  const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const ploc=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(ploc);gl.vertexAttribPointer(ploc,2,gl.FLOAT,false,0,0);
+  const L=n=>gl.getUniformLocation(prog,n);
+  const U={t0:L('uTex0'),t1:L('uTex1'),r0:L('uRes0'),r1:L('uRes1'),res:L('uResolution'),mo:L('uMouse'),pr:L('uProgress'),s0:L('uScale0'),s1:L('uScale1')};
+  gl.uniform1i(U.t0,0);gl.uniform1i(U.t1,1);
+  function mkTex(img){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);return t;}
+  const tex=[],dim=[];let loaded=0;
+  HERO.forEach((src,i)=>{const im=new Image();im.onload=()=>{try{tex[i]=mkTex(im);dim[i]=[im.naturalWidth,im.naturalHeight];}catch(e){tex[i]=null;}if(++loaded===HERO.length)start();};im.onerror=()=>{if(++loaded===HERO.length)start();};im.src=src;});
+  let cur=0,next=1,slideStart=0;const DUR=1600,HOLD=3000,SPAN=HOLD+2*DUR;
+  const sc=z=>1.05; // constant scale (no zoom animation) → pure cross-fade; margin allows mouse parallax
+  let mx=0,my=0,tmx=0,tmy=0;
+  addEventListener('mousemove',e=>{const r=slidesEl.getBoundingClientRect();tmx=((e.clientX-r.left)/r.width-0.5)*2.0;tmy=((e.clientY-r.top)/r.height-0.5)*-2.0;});
+  function resize(){const dpr=Math.min(devicePixelRatio||1,2);heroCanvas.width=Math.max(2,Math.floor(slidesEl.clientWidth*dpr));heroCanvas.height=Math.max(2,Math.floor(slidesEl.clientHeight*dpr));gl.viewport(0,0,heroCanvas.width,heroCanvas.height);gl.uniform2f(U.res,heroCanvas.width,heroCanvas.height);}
+  function bind(){gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex[cur]);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,tex[next]);gl.uniform2f(U.r0,dim[cur][0],dim[cur][1]);gl.uniform2f(U.r1,dim[next][0],dim[next][1]);}
+  function start(){
+    for(let i=0;i<HERO.length;i++){if(!tex[i])return heroFallback();}
+    heroCanvas.classList.add('ready');
+    addEventListener('resize',resize);resize();bind();
+    slideStart=performance.now();requestAnimationFrame(loop);
+  }
+  function loop(now){
+    mx+=(tmx-mx)*0.05;my+=(tmy-my)*0.05;gl.uniform2f(U.mo,mx,my);
+    const el=now-slideStart;
+    const z0=Math.max(0,Math.min(1,(el+DUR)/SPAN)),z1=Math.max(0,Math.min(1,(el-HOLD)/SPAN));
+    gl.uniform1f(U.s0,sc(z0));gl.uniform1f(U.s1,sc(z1));
+    if(el<HOLD){gl.uniform1f(U.pr,0.0);}
+    else{const t=Math.min((el-HOLD)/DUR,1.0);gl.uniform1f(U.pr,t);
+      if(t>=1.0){cur=next;next=(next+1)%HERO.length;bind();gl.uniform1f(U.pr,0.0);slideStart=now;}}
+    gl.drawArrays(gl.TRIANGLES,0,3);requestAnimationFrame(loop);
+  }
 })();
-// Change slide every 4600ms
-setInterval(()=>{
-  slides[currentSlide].classList.remove('active');
-  currentSlide=(currentSlide+1)%slides.length;
-  slides[currentSlide].classList.add('active');
-},4600);
 
 // Render works
 const grid=document.getElementById('grid');
