@@ -189,7 +189,6 @@
     .grid{grid-template-columns:1fr;gap:46px}
     body.nav-open header{mix-blend-mode:normal}
     .sp-br{display:inline}
-    .hero .slides{top:0;height:100%}
   }
 
   /* === Unified type scale (Montserrat / BIZ UDGothic) === */
@@ -444,7 +443,7 @@ requestAnimationFrame(()=>document.body.classList.add('ready'));
   function parallax(){
     const H=innerHeight;
     // Hero image: parallax drift
-    if(!isTouch&&heroEl&&heroSlides){
+    if(heroEl&&heroSlides){
       const r=heroEl.getBoundingClientRect();
       if(r.bottom>-100&&r.top<H+100){const m=r.height*0.09;let p=(r.top+r.height/2-H/2)/H*r.height*0.18;p=p>m?m:p<-m?-m:p;heroSlides.style.transform=`translate3d(0,${p.toFixed(1)}px,0)`;}
     }
