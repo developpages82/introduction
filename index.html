@@ -206,6 +206,13 @@
 </style>
 </head>
 <body>
+<div id="splash-wipe" style="position:fixed;inset:0;background:#fff;z-index:9999;animation:wipe-up 0.8s cubic-bezier(0.42, 0, 0.58, 1) forwards;pointer-events:none"></div>
+<style>
+@keyframes wipe-up{
+  0%{transform:translateY(0);}
+  100%{transform:translateY(-100%);}
+}
+</style>
 <div class="cursor" id="cursor"><span class="lbl">View</span></div>
 
 <header>
@@ -337,6 +344,7 @@
 /* WORKS data is loaded from works-data.js */
 
 // ===== Hero: WebGL slideshow (cross-fade + zoom + mouse parallax) =====
+// ===== Hero: CSS Slideshow with Mouse Parallax =====
 const isSP=window.matchMedia("(max-width: 768px)").matches;
 const imgPath=isSP?"img/slide/sp/":"img/slide/";
 const HERO=[1,2,3,4,5,6,7,8].map(i=>imgPath+i+".jpg");
