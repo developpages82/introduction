@@ -19,7 +19,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth;background:var(--bg)}
-  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;filter:blur(7px);transform:scale(1.06)}
+  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;filter:blur(4px);transform:scale(1.04)}
   body{
     font-family:var(--font-serif);font-weight:400;
     background:transparent;color:var(--ink);line-height:1.8;
@@ -229,7 +229,6 @@
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
 <div id="loader"><div class="ld-inner"><span class="ld-text">LOADING</span><span class="ld-pct">0</span><span class="ld-sym">％</span></div></div>
 <style>
 #loader{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .9s cubic-bezier(.16,1,.3,1)}
@@ -571,6 +570,5 @@ addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY});
 document.addEventListener('mouseover',e=>{if(e.target.closest('[data-cursor]'))cur.classList.add('big');});
 document.addEventListener('mouseout',e=>{if(e.target.closest('[data-cursor]'))cur.classList.remove('big');});
 </script>
-<script src="bg.js"></script>
 </body>
 </html>

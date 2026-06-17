@@ -17,7 +17,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth;background:var(--bg)}
-  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;filter:blur(7px);transform:scale(1.06)}
+  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;filter:blur(4px);transform:scale(1.04)}
   body{font-family:var(--font-serif);font-weight:400;background:transparent;color:var(--ink);line-height:1.8;font-feature-settings:"chws";-webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
   img{display:block;max-width:100%}
@@ -117,7 +117,6 @@
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
 <div class="cursor" id="cursor"><span class="lbl">View</span></div>
 
 <header>
@@ -237,6 +236,5 @@ const burger=document.getElementById('burger'),menu=document.getElementById('men
 burger.addEventListener('click',()=>{menu.classList.toggle('open');document.body.classList.toggle('nav-open');});
 menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{menu.classList.remove('open');document.body.classList.remove('nav-open');}));
 </script>
-<script src="bg.js"></script>
 </body>
 </html>

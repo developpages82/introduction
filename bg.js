@@ -28,9 +28,9 @@
     '    if(present(cell)<0.5) continue;',
     '    vec3 c=cpos(cell);',
     '    d=min(d, length(p-c)-csize(cell));',                          // sphere
-    '    vec3 nx=cell+vec3(1.0,0.0,0.0); if(present(nx)>0.5) d=min(d, sdSeg(p,c,cpos(nx),0.012));', // thin synapse links
-    '    vec3 ny=cell+vec3(0.0,1.0,0.0); if(present(ny)>0.5) d=min(d, sdSeg(p,c,cpos(ny),0.012));',
-    '    vec3 nz=cell+vec3(0.0,0.0,1.0); if(present(nz)>0.5) d=min(d, sdSeg(p,c,cpos(nz),0.012));',
+    '    vec3 nx=cell+vec3(1.0,0.0,0.0); if(present(nx)>0.5) d=min(d, sdSeg(p,c,cpos(nx),0.03));', // synapse links
+    '    vec3 ny=cell+vec3(0.0,1.0,0.0); if(present(ny)>0.5) d=min(d, sdSeg(p,c,cpos(ny),0.03));',
+    '    vec3 nz=cell+vec3(0.0,0.0,1.0); if(present(nz)>0.5) d=min(d, sdSeg(p,c,cpos(nz),0.03));',
     '  }}}',
     '  return d;',
     '}',
@@ -51,14 +51,9 @@
     '  }',
     '  vec3 col=vec3(1.0);',
     '  if(hit>0.5){',
-    '    vec3 p=ro+rd*tt;',
-    '    vec3 n=calcNormal(p);',
-    '    vec3 l=normalize(vec3(0.5,0.8,-0.45));',
-    '    float dif=clamp(dot(n,l),0.0,1.0);',
-    '    float shade=0.5+0.5*dif;',
     '    float fog=clamp(tt/40.0,0.0,1.0); fog=fog*fog;',
-    '    float g=mix(0.70,0.95,shade);',
-    '    col=mix(vec3(g), vec3(1.0), fog);',
+    '    float ink=mix(0.58,0.95,fog);',                 // flat silhouette grey, fading to white with distance
+    '    col=vec3(ink);',
     '  }',
     '  gl_FragColor=vec4(col,1.0);',
     '}'
