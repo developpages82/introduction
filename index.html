@@ -19,7 +19,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth;background:var(--bg)}
-  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none}
+  #bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;filter:blur(7px);transform:scale(1.06)}
   body{
     font-family:var(--font-serif);font-weight:400;
     background:transparent;color:var(--ink);line-height:1.8;
@@ -60,7 +60,7 @@
   .burger span{width:26px;height:2px;background:#fff;transform-origin:center;transition:transform .35s var(--ease),opacity .25s,background .3s}
 
   /* Hero */
-  .hero{position:relative;z-index:1;height:calc(100vh - 28px);height:calc(100svh - 28px);min-height:600px;overflow:hidden;color:#fff;border-radius:14px;margin:18px;padding:0}
+  .hero{position:relative;z-index:1;height:calc(100vh - 90px);height:calc(100svh - 90px);min-height:560px;overflow:hidden;color:#fff;border-radius:14px;margin:72px 18px 18px;padding:0}
   .hero .slides{position:absolute;top:-10%;left:0;width:100%;height:120%;background:var(--bg);overflow:hidden}
   .hero .slides #gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1s var(--ease)}
   .hero .slides #gl.ready{opacity:1}
@@ -229,12 +229,14 @@
 </style>
 </head>
 <body>
-<div id="splash-wipe" style="position:fixed;inset:0;background:#fff;z-index:9999;animation:wipe-up 0.8s cubic-bezier(0.42, 0, 0.58, 1) forwards;pointer-events:none"></div>
+<canvas id="bg"></canvas>
+<div id="loader"><div class="ld-inner"><span class="ld-text">LOADING</span><span class="ld-pct">0</span><span class="ld-sym">％</span></div></div>
 <style>
-@keyframes wipe-up{
-  0%{transform:translateY(0);}
-  100%{transform:translateY(-100%);}
-}
+#loader{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .9s cubic-bezier(.16,1,.3,1)}
+#loader.done{opacity:0;pointer-events:none}
+#loader .ld-inner{font-family:var(--font-sans);font-weight:500;letter-spacing:.14em;color:#1a1a1a;font-size:.82rem;display:flex;align-items:baseline;gap:.45em}
+#loader .ld-pct{font-variant-numeric:tabular-nums;min-width:2.6ch;text-align:right}
+#loader .ld-sym{margin-left:-.2em}
 </style>
 <div class="cursor" id="cursor"><span class="lbl">View</span></div>
 
@@ -463,8 +465,27 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 // Split hero title into characters for staggered reveal
 (function(){let k=0;document.querySelectorAll('.hero h1 .htxt').forEach(el=>{const t=el.textContent;el.textContent='';for(const c of t){const s=document.createElement('span');s.className='ch';s.textContent=(c===' ')?' ':c;s.style.transitionDelay=(k++*0.04).toFixed(2)+'s';el.appendChild(s);}});})();
 
-// Hero intro
-requestAnimationFrame(()=>document.body.classList.add('ready'));
+// Splash / loading screen: count up to 100% then white-fade to reveal TOP
+(function(){
+  const ld=document.getElementById('loader');
+  if(!ld){requestAnimationFrame(()=>document.body.classList.add('ready'));return;}
+  const pct=ld.querySelector('.ld-pct');
+  const dur=1600, t0=performance.now();
+  (function tick(now){
+    const k=Math.min(1,(now-t0)/dur);
+    const e=1-Math.pow(1-k,2);            // ease-out
+    pct.textContent=Math.round(e*100);
+    if(k<1){requestAnimationFrame(tick);}
+    else{
+      pct.textContent=100;
+      setTimeout(()=>{
+        ld.classList.add('done');                       // white fade out
+        requestAnimationFrame(()=>document.body.classList.add('ready')); // hero intro
+        setTimeout(()=>{ld.style.display='none';},1000);
+      },300);
+    }
+  })(t0);
+})();
 
 // ===== Smooth scroll (Lenis-style lerp) + Works parallax =====
 (function(){
@@ -550,5 +571,6 @@ addEventListener('mousemove',e=>{tx=e.clientX;ty=e.clientY});
 document.addEventListener('mouseover',e=>{if(e.target.closest('[data-cursor]'))cur.classList.add('big');});
 document.addEventListener('mouseout',e=>{if(e.target.closest('[data-cursor]'))cur.classList.remove('big');});
 </script>
+<script src="bg.js"></script>
 </body>
 </html>

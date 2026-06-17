@@ -1,6 +1,7 @@
 /* Abstract monochrome 3D background (vanilla WebGL, raymarched).
-   An infinite lattice of thin lines + scattered blocks, flown through slowly,
-   fading to white with distance for depth. Kept pale so text stays legible. */
+   Randomly sized & placed floating blocks in 3D space, fading to white with
+   distance for depth. The camera moves up/down with page scroll (no forward
+   travel). Kept pale so text stays legible. */
 (function(){
   const c=document.getElementById('bg'); if(!c) return;
   let gl; try{ gl=c.getContext('webgl')||c.getContext('experimental-webgl'); }catch(e){}
@@ -9,36 +10,44 @@
   const vs='attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
   const fs=[
     'precision highp float;',
-    'uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse;',
+    'uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse; uniform float uScroll;',
+    'const float CELL=6.0;',
     'float hash(vec3 p){p=fract(p*0.3183099+0.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
     'float sdBox(vec3 p, vec3 b){vec3 d=abs(p)-b;return length(max(d,0.0))+min(max(d.x,max(d.y,d.z)),0.0);}',
+    'float sdSeg(vec3 p, vec3 a, vec3 b, float r){vec3 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);return length(pa-ba*h)-r;}',
+    'float present(vec3 cell){return step(0.5, hash(cell+vec3(8.0)));}',  // ~half the cells have a cube
+    'vec3 cpos(vec3 cell){vec3 off=(vec3(hash(cell+vec3(1.7)),hash(cell+vec3(9.2)),hash(cell+vec3(4.3)))-0.5)*CELL*0.45;return CELL*cell+off;}',
+    'float csize(vec3 cell){return mix(0.05,0.28,hash(cell+vec3(2.1)));}',  // sphere radius (small)
     'float map(vec3 p){',
-    '  vec3 g=mod(p,4.0)-2.0;',
-    '  vec3 id=floor(p/4.0);',
-    '  float tubes=min(length(g.yz),min(length(g.xz),length(g.xy)))-0.07;',
-    '  float d=tubes;',
-    '  float h=hash(id);',
-    '  if(h>0.80){ d=min(d, sdBox(g, vec3(0.55))); }',
+    '  vec3 base=floor(p/CELL+0.5);',
+    '  float d=1e5;',
+    '  for(int x=-1;x<=1;x++){',
+    '  for(int y=-1;y<=1;y++){',
+    '  for(int z=-1;z<=1;z++){',
+    '    vec3 cell=base+vec3(float(x),float(y),float(z));',
+    '    if(present(cell)<0.5) continue;',
+    '    vec3 c=cpos(cell);',
+    '    d=min(d, length(p-c)-csize(cell));',                          // sphere
+    '    vec3 nx=cell+vec3(1.0,0.0,0.0); if(present(nx)>0.5) d=min(d, sdSeg(p,c,cpos(nx),0.012));', // thin synapse links
+    '    vec3 ny=cell+vec3(0.0,1.0,0.0); if(present(ny)>0.5) d=min(d, sdSeg(p,c,cpos(ny),0.012));',
+    '    vec3 nz=cell+vec3(0.0,0.0,1.0); if(present(nz)>0.5) d=min(d, sdSeg(p,c,cpos(nz),0.012));',
+    '  }}}',
     '  return d;',
     '}',
-    'vec3 calcNormal(vec3 p){vec2 e=vec2(0.0015,0.0);return normalize(vec3(',
+    'vec3 calcNormal(vec3 p){vec2 e=vec2(0.002,0.0);return normalize(vec3(',
     '  map(p+e.xyy)-map(p-e.xyy), map(p+e.yxy)-map(p-e.yxy), map(p+e.yyx)-map(p-e.yyx)));}',
     'void main(){',
     '  vec2 uv=(gl_FragCoord.xy-0.5*uRes)/uRes.y;',
-    '  float t=uTime*0.55;',
-    '  vec3 ro=vec3(2.0+uMouse.x*0.7, 1.5+uMouse.y*0.5, t);',
-    '  vec3 ta=ro+vec3(sin(t*0.10)*0.35, cos(t*0.07)*0.25, 1.0);',
-    '  vec3 fw=normalize(ta-ro);',
-    '  vec3 rt=normalize(cross(vec3(0.0,1.0,0.0),fw));',
-    '  vec3 up=cross(fw,rt);',
-    '  vec3 rd=normalize(uv.x*rt+uv.y*up+1.4*fw);',
-    '  float tt=0.0; float hit=0.0;',
-    '  for(int i=0;i<88;i++){',
+    '  float cy=2.0 - uScroll*0.006 + sin(uTime*0.2)*0.25 + uMouse.y*0.5;',  // scroll-driven up/down
+    '  vec3 ro=vec3(uMouse.x*0.7, cy, 0.0);',
+    '  vec3 rd=normalize(vec3(uv,1.5));',                                     // fixed forward view (+z)
+    '  float tt=0.5; float hit=0.0;',
+    '  for(int i=0;i<90;i++){',
     '    vec3 p=ro+rd*tt;',
     '    float d=map(p);',
-    '    if(d<0.0025){hit=1.0;break;}',
-    '    tt+=d*0.9;',
-    '    if(tt>42.0)break;',
+    '    if(d<0.003){hit=1.0;break;}',
+    '    tt+=d;',
+    '    if(tt>60.0)break;',
     '  }',
     '  vec3 col=vec3(1.0);',
     '  if(hit>0.5){',
@@ -47,8 +56,8 @@
     '    vec3 l=normalize(vec3(0.5,0.8,-0.45));',
     '    float dif=clamp(dot(n,l),0.0,1.0);',
     '    float shade=0.5+0.5*dif;',
-    '    float fog=clamp(tt/30.0,0.0,1.0); fog=fog*fog;',
-    '    float g=mix(0.72,0.96,shade);',
+    '    float fog=clamp(tt/40.0,0.0,1.0); fog=fog*fog;',
+    '    float g=mix(0.70,0.95,shade);',
     '    col=mix(vec3(g), vec3(1.0), fog);',
     '  }',
     '  gl_FragColor=vec4(col,1.0);',
@@ -72,7 +81,8 @@
 
   const uRes=gl.getUniformLocation(prog,'uRes'),
         uTime=gl.getUniformLocation(prog,'uTime'),
-        uMouse=gl.getUniformLocation(prog,'uMouse');
+        uMouse=gl.getUniformLocation(prog,'uMouse'),
+        uScroll=gl.getUniformLocation(prog,'uScroll');
 
   function resize(){
     const dpr=Math.min(window.devicePixelRatio||1,1.25);
@@ -88,12 +98,17 @@
     ty=(e.clientY/innerHeight-0.5)*2.0;
   },{passive:true});
 
+  let sc=0; // smoothed scroll
+  function curScroll(){return window.scrollY||document.documentElement.scrollTop||0;}
+
   const t0=performance.now();
   (function loop(){
     mx+=(tx-mx)*0.04; my+=(ty-my)*0.04;
+    sc+=(curScroll()-sc)*0.08;
     gl.uniform2f(uRes,c.width,c.height);
     gl.uniform1f(uTime,(performance.now()-t0)/1000);
     gl.uniform2f(uMouse,mx,my);
+    gl.uniform1f(uScroll,sc);
     gl.drawArrays(gl.TRIANGLES,0,3);
     requestAnimationFrame(loop);
   })();
