@@ -191,7 +191,7 @@
   .pillar .val{border-top:1px solid var(--line);padding:13px 0}
   .pillar .val b{display:block;font-weight:500;font-size:.82rem;letter-spacing:.04em;margin-bottom:2px}
   .pillar .val span{font-size:.88rem;color:var(--ink-soft)}
-  .caps .row{display:flex;justify-content:space-between;font-size:clamp(.6rem,3.2vw,.75rem);font-weight:500;color:#000;line-height:1.4;letter-spacing:.01em;white-space:nowrap;border-top:1px solid var(--line);padding:13px 0;gap:14px}
+  .caps .row{display:flex;justify-content:space-between;font-size:.96rem;font-weight:500;color:#000;line-height:1.4;letter-spacing:.01em;white-space:nowrap;border-top:1px solid var(--line);padding:13px 0;gap:14px}
   .caps .row span{color:var(--ink-soft);text-align:right}
   .history{margin-top:90px;padding:0 var(--pad)}
   .tl{display:grid;grid-template-columns:120px 1fr;gap:30px;padding:20px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -276,14 +276,13 @@
   .work h3{transition:color .3s var(--ease)}
   .work:hover h3{color:#000}
 
-  /* Masked text reveal */
-  .tsplit .w{display:inline-block;overflow:hidden;vertical-align:top;padding:.08em 0;margin:-.08em 0}
-  .tsplit .w .wi{display:inline-block;transform:translateY(118%);transition:transform .9s var(--ease)}
-  .tsplit.in .w .wi{transform:none}
+  /* Bottom-up fade reveal (shared) */
+  .fup{opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+  .fup.in{opacity:1;transform:none}
 
   @media(prefers-reduced-motion:reduce){
-    #pagewipe,.work .thumb,.tsplit .w .wi{transition:none!important}
-    .tsplit .w .wi{transform:none!important}
+    #pagewipe,.work .thumb,.fup{transition:none!important}
+    .fup{opacity:1!important;transform:none!important}
   }
 </style>
 </head>
@@ -652,55 +651,16 @@ document.addEventListener('mouseout',e=>{if(e.target.closest('[data-cursor]'))cu
   const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const isTouch=matchMedia('(hover:none)').matches||innerWidth<=820;
 
-  /* ---- 1. Masked text reveal — Latin=per word, Japanese=per char; markup/<b>/<br> kept; flex/grid wrapped whole ---- */
+  /* ---- 1. Bottom-up fade reveal for text (hero <h1> chars keep their own animation) ---- */
   (function(){
     const sel=['.shead h2','.pillar h3','.pillar .stmt','.pillar .val',
                '.caps h4','.caps .row','.history h4','.guidelines h4',
                '.vstmt .v-jp','.vstmt .v-en',
                '.about-grid .big','.about-grid .roles','.about-grid p',
-               '.tl .yr','.tl .desc','.work h3','.copy','.filters button'];
+               '.tl .yr','.tl .desc','.work h3','.work .tags span','.copy','.filters button'];
     const els=[...document.querySelectorAll(sel.join(','))];
-    const CJK=/[　-〿぀-ヿ㐀-鿿＀-￯]/;   // kana, kanji, fullwidth
-    let gk=0;
-    function tokenize(text){
-      const out=[]; let buf='';
-      for(const ch of text){
-        if(/\s/.test(ch)){ if(buf){out.push({t:'w',v:buf});buf='';} out.push({t:'s',v:ch}); }
-        else if(CJK.test(ch)){ if(buf){out.push({t:'w',v:buf});buf='';} out.push({t:'c',v:ch}); }
-        else { buf+=ch; }
-      }
-      if(buf)out.push({t:'w',v:buf});
-      return out;
-    }
-    function build(src,dest){            // src = detached deep clone, dest = real element being filled
-      src.childNodes.forEach(n=>{
-        if(n.nodeType===3){
-          tokenize(n.nodeValue).forEach(tk=>{
-            if(tk.t==='s'){ dest.appendChild(document.createTextNode(tk.v)); return; }
-            const w=document.createElement('span');w.className='w';
-            const wi=document.createElement('span');wi.className='wi';wi.textContent=tk.v;
-            wi.style.transitionDelay=Math.min(gk*0.03,0.6).toFixed(3)+'s'; gk++;
-            w.appendChild(wi);dest.appendChild(w);
-          });
-        } else if(n.nodeName==='BR'){ dest.appendChild(document.createElement('br')); }
-        else if(n.nodeType===1){ const c=n.cloneNode(false); dest.appendChild(c); build(n,c); }
-      });
-    }
-    function wholeWrap(el){              // flex/grid: keep a single child so layout survives
-      const w=document.createElement('span');w.className='w';
-      const wi=document.createElement('span');wi.className='wi';
-      while(el.firstChild) wi.appendChild(el.firstChild);
-      w.appendChild(wi);el.appendChild(w);
-    }
-    els.forEach(el=>{
-      if(el.dataset.split)return; el.dataset.split='1'; el.classList.add('tsplit');
-      gk=0;                              // each element waves independently
-      const d=getComputedStyle(el).display;
-      if(d==='flex'||d==='inline-flex'||d==='grid'||d==='inline-grid'){ wholeWrap(el); }
-      else { const src=el.cloneNode(true); el.textContent=''; build(src,el); }
-    });
-    // trigger later: element must scroll well into view before animating
-    const tio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');tio.unobserve(e.target);}})},{threshold:0,rootMargin:'0px 0px -32% 0px'});
+    els.forEach(el=>{ if(el.dataset.fup)return; el.dataset.fup='1'; el.classList.add('fup'); });
+    const tio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');tio.unobserve(e.target);}})},{threshold:0,rootMargin:'0px 0px -20% 0px'});
     els.forEach(el=>tio.observe(el));
   })();
 
