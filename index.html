@@ -255,7 +255,7 @@
   /* Works hover: tilt + reveal overlay */
   .work .thumb{transition:transform .5s var(--ease),box-shadow .5s var(--ease);transform-style:preserve-3d;will-change:transform}
   .work:hover .thumb{box-shadow:0 30px 60px -28px rgba(0,0,0,.32)}
-  .work .thumb .ov{position:absolute;inset:0;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;
+  .work .thumb .ov{display:none!important;position:absolute;inset:0;z-index:2;align-items:flex-end;justify-content:space-between;
     padding:16px 18px;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.42));
     opacity:0;transition:opacity .5s var(--ease)}
   .work:hover .thumb .ov{opacity:1}

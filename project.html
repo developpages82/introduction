@@ -49,6 +49,8 @@
   @media(hover:none),(max-width:820px){.cursor{display:none}}
   #scrollbar{position:fixed;top:0;left:0;width:100%;height:2px;z-index:300;pointer-events:none;mix-blend-mode:difference}
   #scrollbar i{display:block;height:100%;width:100%;background:#fff;transform:scaleX(0);transform-origin:left center;will-change:transform}
+  body.smooth #scroll-content{position:fixed;top:0;left:0;width:100%;will-change:transform}
+  #scroll-spacer{width:1px;pointer-events:none}
 
   header{position:fixed;top:0;left:0;width:100%;z-index:200;padding:26px var(--pad);display:flex;justify-content:space-between;align-items:center;mix-blend-mode:difference;color:#fff}
   header .logo{font-weight:500;font-size:1rem;letter-spacing:-.01em}
@@ -261,6 +263,50 @@ menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{menu.class
     addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(upd);},{passive:true});
     addEventListener('resize',upd,{passive:true}); upd();
   })();
+})();
+
+// ===== Inertia (smooth) scroll — same lerp as index.html =====
+(function(){
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const isTouch=matchMedia('(hover:none)').matches||innerWidth<=820;
+  if(reduce||isTouch) return;            // native scroll on touch / reduced-motion
+  const main=document.getElementById('main'); if(!main)return;
+  const footer=document.querySelector('footer');
+  // wrap main(+footer) into one layer so the whole document scrolls as a single transform
+  const content=document.createElement('div'); content.id='scroll-content';
+  main.parentNode.insertBefore(content,main);
+  content.appendChild(main); if(footer)content.appendChild(footer);
+
+  document.documentElement.style.scrollBehavior='auto';
+  document.body.classList.add('smooth');
+  const spacer=document.createElement('div'); spacer.id='scroll-spacer';
+  document.body.appendChild(spacer);
+  function layout(){spacer.style.height=content.offsetHeight+'px';}
+  layout();
+  new ResizeObserver(layout).observe(content);
+  addEventListener('load',layout);
+  addEventListener('resize',layout);
+
+  let target=0,current=0;
+  function frame(){
+    target=window.scrollY||document.documentElement.scrollTop||0;
+    current+=(target-current)*0.06;
+    if(Math.abs(target-current)<0.05)current=target;
+    content.style.transform=`translate3d(0,${(-current).toFixed(2)}px,0)`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // smooth anchor jumps (same-page ids only)
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const id=a.getAttribute('href'); if(id==='#'||id.length<2)return;
+      const el=document.querySelector(id); if(!el)return;
+      e.preventDefault();
+      const y=el.getBoundingClientRect().top+current-90;
+      scrollTo({top:Math.max(0,y),behavior:'smooth'});
+    });
+  });
 })();
 </script>
 </body>
