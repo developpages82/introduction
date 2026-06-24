@@ -191,7 +191,7 @@
   .pillar .val{border-top:1px solid var(--line);padding:13px 0}
   .pillar .val b{display:block;font-weight:500;font-size:.82rem;letter-spacing:.04em;margin-bottom:2px}
   .pillar .val span{font-size:.88rem;color:var(--ink-soft)}
-  .caps .row{display:flex;justify-content:space-between;font-size:clamp(1.2rem,6.4vw,1.5rem);font-weight:500;color:var(--ink);line-height:1.4;letter-spacing:.01em;white-space:nowrap;border-top:1px solid var(--line);padding:13px 0;gap:14px}
+  .caps .row{display:flex;justify-content:space-between;font-size:clamp(.6rem,3.2vw,.75rem);font-weight:500;color:#000;line-height:1.4;letter-spacing:.01em;white-space:nowrap;border-top:1px solid var(--line);padding:13px 0;gap:14px}
   .caps .row span{color:var(--ink-soft);text-align:right}
   .history{margin-top:90px;padding:0 var(--pad)}
   .tl{display:grid;grid-template-columns:120px 1fr;gap:30px;padding:20px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -556,36 +556,52 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   works.forEach(w=>{w._h=false;w._s=1;
     w.addEventListener('mouseenter',()=>w._h=true);
     w.addEventListener('mouseleave',()=>w._h=false);});
-  const heroEl=document.querySelector('.hero'),heroSlides=document.querySelector('.hero .slides'),portrait=document.querySelector('.about-grid .portrait');
+  const heroEl=document.querySelector('.hero'),heroSlides=document.querySelector('.hero .slides');
+  const portraitWrap=document.querySelector('.about-grid .portrait-wrap'),portrait=document.querySelector('.about-grid .portrait');
+  const smooth=!reduce&&!isTouch;
+
+  let current=0;   // smoothed (smooth mode) or raw (native) scroll position
+  // Cache document-space positions ONCE per layout so the rAF loop never forces a reflow.
+  function pos(el){const r=el.getBoundingClientRect();return{top:r.top+current,h:r.height};}
+  let heroM=null,portM=null;
+  function measure(){
+    heroM=heroEl?pos(heroEl):null;
+    portM=portraitWrap?pos(portraitWrap):null;
+    for(const w of works){
+      if(w.classList.contains('hide')){w._m=null;continue;}
+      w._m=pos(w); w._img=w.querySelector('.thumb img');
+    }
+  }
 
   function parallax(){
-    const H=innerHeight;
-    // Hero image: parallax drift
-    if(heroEl&&heroSlides){
-      const r=heroEl.getBoundingClientRect();
-      if(r.bottom>-100&&r.top<H+100){const m=r.height*0.09;let p=(r.top+r.height/2-H/2)/H*r.height*0.18;p=p>m?m:p<-m?-m:p;heroSlides.style.transform=`translate3d(0,${p.toFixed(1)}px,0)`;}
+    const H=innerHeight, cur=current;
+    if(heroEl&&heroSlides&&heroM){
+      const top=heroM.top-cur,h=heroM.h;
+      if(top+h>-100&&top<H+100){const m=h*0.09;let p=(top+h/2-H/2)/H*h*0.18;p=p>m?m:p<-m?-m:p;heroSlides.style.transform=`translate3d(0,${p.toFixed(1)}px,0)`;}
     }
-    // Portrait: vertical drift
-    if(portrait){
-      const r=portrait.getBoundingClientRect();
-      if(r.bottom>-100&&r.top<H+100){const m=r.height*0.08;let p=(r.top+r.height/2-H/2)/H*r.height*0.18;p=p>m?m:p<-m?-m:p;portrait.style.transform=`translate3d(0,${p.toFixed(1)}px,0)`;}
+    if(portrait&&portM){
+      const top=portM.top-cur,h=portM.h;
+      if(top+h>-100&&top<H+100){const m=h*0.08;let p=(top+h/2-H/2)/H*h*0.18;p=p>m?m:p<-m?-m:p;portrait.style.transform=`translate3d(0,${p.toFixed(1)}px,0)`;}
     }
     for(const w of works){
-      if(w.classList.contains('hide'))continue;
-      const img=w.querySelector('.thumb img');if(!img)continue;
-      const r=w.getBoundingClientRect();
-      if(r.bottom<-120||r.top>H+120)continue;
-      const ratio=((r.top+r.height/2)-H/2)/H;
-      const max=r.height*0.045;
-      let py=ratio*r.height*0.18; if(py>max)py=max; else if(py<-max)py=-max;
+      const m=w._m; if(!m)continue; const img=w._img; if(!img)continue;
+      const top=m.top-cur,h=m.h;
+      if(top+h<-120||top>H+120)continue;
+      const ratio=((top+h/2)-H/2)/H;
+      const mx=h*0.045;
+      let py=ratio*h*0.18; if(py>mx)py=mx; else if(py<-mx)py=-mx;
       const ts=w._h?1.05:1; w._s+=(ts-w._s)*0.12;
       img.style.transform=`translate3d(0,${py.toFixed(2)}px,0) scale(${w._s.toFixed(3)})`;
     }
   }
 
-  let smooth=!reduce&&!isTouch;
   if(!smooth){ // mobile / reduced-motion: native scroll, parallax only
-    const f=()=>{parallax();requestAnimationFrame(f)};requestAnimationFrame(f);
+    measure();
+    addEventListener('resize',measure,{passive:true});
+    addEventListener('load',measure);
+    new ResizeObserver(measure).observe(content);
+    const f=()=>{current=window.scrollY||document.documentElement.scrollTop||0;parallax();requestAnimationFrame(f)};
+    requestAnimationFrame(f);
     return;
   }
 
@@ -594,13 +610,13 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   document.body.classList.add('smooth');
   const spacer=document.createElement('div');spacer.id='scroll-spacer';
   document.body.appendChild(spacer);
-  function layout(){spacer.style.height=content.offsetHeight+'px';}
+  function layout(){spacer.style.height=content.offsetHeight+'px';measure();}
   layout();
   new ResizeObserver(layout).observe(content);
   addEventListener('load',layout);
   addEventListener('resize',layout);
 
-  let target=0,current=0;
+  let target=0;
   function frame(){
     target=window.scrollY||document.documentElement.scrollTop||0;
     current+=(target-current)*0.06;

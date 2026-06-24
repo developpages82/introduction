@@ -42,7 +42,7 @@
     '  vec3 ro=vec3(uMouse.x*0.7, cy, 0.0);',
     '  vec3 rd=normalize(vec3(uv,1.5));',                                     // fixed forward view (+z)
     '  float tt=0.5; float hit=0.0;',
-    '  for(int i=0;i<90;i++){',
+    '  for(int i=0;i<60;i++){',
     '    vec3 p=ro+rd*tt;',
     '    float d=map(p);',
     '    if(d<0.003){hit=1.0;break;}',
@@ -80,7 +80,8 @@
         uScroll=gl.getUniformLocation(prog,'uScroll');
 
   function resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,1.25);
+    // Background is blurred + scaled, so render at reduced internal resolution to cut GPU cost.
+    const scale=0.62, dpr=Math.min(window.devicePixelRatio||1,1.0)*scale;
     c.width=Math.max(2,Math.floor(innerWidth*dpr));
     c.height=Math.max(2,Math.floor(innerHeight*dpr));
     gl.viewport(0,0,c.width,c.height);
@@ -96,15 +97,17 @@
   let sc=0; // smoothed scroll
   function curScroll(){return window.scrollY||document.documentElement.scrollTop||0;}
 
-  const t0=performance.now();
-  (function loop(){
-    mx+=(tx-mx)*0.04; my+=(ty-my)*0.04;
-    sc+=(curScroll()-sc)*0.08;
+  const t0=performance.now(); let lastT=-1e9;
+  (function loop(now){
+    requestAnimationFrame(loop);
+    if(now-lastT<32) return;            // cap to ~30fps (blurred ambient layer)
+    lastT=now;
+    mx+=(tx-mx)*0.08; my+=(ty-my)*0.08;
+    sc+=(curScroll()-sc)*0.14;
     gl.uniform2f(uRes,c.width,c.height);
-    gl.uniform1f(uTime,(performance.now()-t0)/1000);
+    gl.uniform1f(uTime,(now-t0)/1000);
     gl.uniform2f(uMouse,mx,my);
     gl.uniform1f(uScroll,sc);
     gl.drawArrays(gl.TRIANGLES,0,3);
-    requestAnimationFrame(loop);
-  })();
+  })(performance.now());
 })();
