@@ -418,6 +418,17 @@
 <script>
 /* WORKS data is loaded from works-data.js */
 
+// Start at the very top on (re)load — prevents mobile pull-to-refresh from
+// restoring a scrolled-down position. Honors deep links (#section) so those still work.
+if('scrollRestoration' in history) history.scrollRestoration='manual';
+(function(){
+  function toTop(){ if(!location.hash){ window.scrollTo(0,0); } }
+  toTop();
+  addEventListener('DOMContentLoaded',toTop);
+  addEventListener('load',toTop);
+  addEventListener('pageshow',e=>{ if(!e.persisted) toTop(); });
+})();
+
 // ===== Hero: WebGL slideshow (cross-fade + zoom + mouse parallax) =====
 // ===== Hero: CSS Slideshow with Mouse Parallax =====
 const isSP=window.matchMedia("(max-width: 768px)").matches;
